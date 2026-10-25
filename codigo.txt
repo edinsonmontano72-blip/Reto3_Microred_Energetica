@@ -1,0 +1,206 @@
+%% RETO 3 - ALGORITMO DE CONTROL Y CARGAS
+% Curso: Software para Ingenieria
+% Universidad Nacional Abierta y a Distancia - UNAD
+% Objetivo: Simular el control energetico de una microred
+% durante 24 horas, priorizando los servicios esenciales.
+
+clc;
+clear;
+close all;
+
+%% 1. CONFIGURACION INICIAL DEL SISTEMA
+
+% Capacidad total de la bateria en kWh
+Capacidad_bat = 100;
+
+% Estado de carga inicial de la bateria en porcentaje
+SOC = 50;
+
+% Numero de horas de simulacion
+N = 24;
+
+%% 2. DATOS DE GENERACION Y DEMANDA
+% IMPORTANTE: estos valores son ilustrativos.
+% Reemplazarlos por los datos originales del Reto 2.
+% Los valores energeticos corresponden a cada hora en kWh.
+
+% Generacion de energia solar
+E_solar = [0 0 0 0 0 2 5 8 10 12 14 15 ...
+           15 14 12 10 7 4 1 0 0 0 0 0];
+
+% Generacion de energia eolica
+E_eolica = [5 5 4 4 3 3 4 4 5 5 4 4 ...
+            3 3 4 5 6 7 8 8 7 6 6 5];
+
+% Demanda de la escuela rural
+D_escuela = [2 2 2 2 2 2 3 4 4 4 4 4 ...
+             4 4 4 4 3 3 2 2 2 2 2 2];
+
+% Demanda del bombeo de agua agricola
+D_bombeo = [3 3 3 3 3 3 3 4 4 4 4 4 ...
+            4 4 4 4 4 4 3 3 3 3 3 3];
+
+% Demanda del alumbrado publico
+D_alumbrado = [2 2 2 2 2 2 1 0 0 0 0 0 ...
+               0 0 0 0 1 2 3 3 3 3 3 3];
+
+%% 3. CREACION DE VECTORES PARA LOS RESULTADOS
+
+E_generada = zeros(1,N);
+E_demandada = zeros(1,N);
+Balance = zeros(1,N);
+SOC_historial = zeros(1,N);
+
+Escuela = strings(1,N);
+Bombeo = strings(1,N);
+Alumbrado = strings(1,N);
+Estado = strings(1,N);
+
+% Inicialmente, todos los servicios estan activos.
+escuela_activa = true;
+bombeo_activo = true;
+alumbrado_activo = true;
+
+%% 4. CICLO DE SIMULACION DE LAS 24 HORAS
+
+for hora = 1:N
+
+    % Calcular la generacion hibrida total
+    E_generada(hora) = E_solar(hora) + E_eolica(hora);
+
+    % Calcular la demanda segun los servicios activos
+    E_demandada(hora) = ...
+        D_escuela(hora)*escuela_activa + ...
+        D_bombeo(hora)*bombeo_activo + ...
+        D_alumbrado(hora)*alumbrado_activo;
+
+    % Calcular el balance energetico
+    Balance(hora) = E_generada(hora) - E_demandada(hora);
+
+    %% 5. EVALUACION DEL BALANCE ENERGETICO
+
+    if Balance(hora) >= 0
+
+        % Si existe excedente, cargar la bateria.
+        SOC = SOC + ...
+              (Balance(hora)/Capacidad_bat)*100;
+
+        % Evitar que la bateria supere el 100 por ciento.
+        SOC = min(SOC,100);
+
+        % Cuando hay superavit, todos los servicios
+        % permanecen activos, segun la guia.
+        escuela_activa = true;
+        bombeo_activo = true;
+        alumbrado_activo = true;
+
+        Estado(hora) = "Superavit";
+
+    else
+
+        % Si existe deficit, utilizar la energia almacenada.
+        SOC = SOC + ...
+              (Balance(hora)/Capacidad_bat)*100;
+
+        % Evitar que el SOC sea inferior al cero por ciento.
+        SOC = max(SOC,0);
+
+        % Evaluar las prioridades de desconexion.
+        if SOC > 40
+
+            % Ruta segura: todos los servicios activos.
+            escuela_activa = true;
+            bombeo_activo = true;
+            alumbrado_activo = true;
+
+        elseif SOC > 20
+
+            % Ruta de alerta: desconectar alumbrado.
+            escuela_activa = true;
+            bombeo_activo = true;
+            alumbrado_activo = false;
+
+        else
+
+            % Ruta de emergencia: desconectar alumbrado
+            % y bombeo, manteniendo la escuela energizada.
+            escuela_activa = true;
+            bombeo_activo = false;
+            alumbrado_activo = false;
+
+        end
+
+        Estado(hora) = "Deficit";
+
+    end
+
+    %% 6. GUARDAR EL ESTADO DE LA BATERIA
+
+    SOC_historial(hora) = SOC;
+
+    %% 7. REGISTRAR EL ESTADO DE LOS SERVICIOS
+
+    if escuela_activa
+        Escuela(hora) = "Activo";
+    else
+        Escuela(hora) = "Suspendido";
+    end
+
+    if bombeo_activo
+        Bombeo(hora) = "Activo";
+    else
+        Bombeo(hora) = "Suspendido";
+    end
+
+    if alumbrado_activo
+        Alumbrado(hora) = "Activo";
+    else
+        Alumbrado(hora) = "Suspendido";
+    end
+
+    %% 8. MOSTRAR EL REPORTE DE CADA HORA
+
+    fprintf('\n========================================\n');
+    fprintf('HORA: %d\n',hora);
+    fprintf('Generacion: %.2f kWh\n',E_generada(hora));
+    fprintf('Demanda: %.2f kWh\n',E_demandada(hora));
+    fprintf('Balance: %.2f kWh\n',Balance(hora));
+    fprintf('Estado energetico: %s\n',Estado(hora));
+    fprintf('Carga de la bateria: %.2f %%\n',SOC);
+    fprintf('Escuela rural: %s\n',Escuela(hora));
+    fprintf('Bombeo agricola: %s\n',Bombeo(hora));
+    fprintf('Alumbrado publico: %s\n',Alumbrado(hora));
+
+end
+
+%% 9. PRESENTAR LA TABLA RESUMEN DE RESULTADOS
+
+Hora = (1:N)';
+
+Resultados = table(Hora, E_generada', E_demandada', ...
+    Balance', SOC_historial', Estado', Escuela', ...
+    Bombeo', Alumbrado', ...
+    'VariableNames', {'Hora','Generacion_kWh', ...
+    'Demanda_kWh','Balance_kWh','SOC_porcentaje', ...
+    'Estado','Escuela','Bombeo','Alumbrado'});
+
+disp(' ');
+disp('===== RESUMEN DE LA SIMULACION DE 24 HORAS =====');
+disp(Resultados);
+
+%% 10. GRAFICAR EL ESTADO DE CARGA DE LA BATERIA
+
+figure;
+
+plot(Hora,SOC_historial,'-o');
+
+xlabel('Hora de simulacion');
+ylabel('Estado de carga de la bateria (%)');
+
+title('Evolucion del SOC durante 24 horas');
+
+grid on;
+
+ylim([0 100]);
+
+%% FIN DEL ALGORITMO

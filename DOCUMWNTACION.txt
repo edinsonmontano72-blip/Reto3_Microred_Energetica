@@ -1,0 +1,24 @@
+# Reto 3 — Control de Cargas en Microred ⚡
+
+**Universidad Nacional Abierta y a Distancia — UNAD**
+Curso: Software para Ingeniería
+
+## 📋 Descripción
+Simulación del comportamiento energético de una microred durante 24 horas, con generación híbrida solar-eólica y gestión inteligente de servicios.
+
+## 🚀 Ejecución
+1. Abre `reto3_control_cargas.m` en MATLAB
+2. Ejecuta el script completo
+3. Se generará:
+   - Reporte hora a hora en consola
+   - Tabla resumen de resultados
+   - Gráfica de evolución de la batería
+
+## 📊 Variables
+- `E_solar` / `E_eolica`: Generación en kWh
+- `D_escuela`, `D_bombeo`, `D_alumbrado`: Demandas
+- `SOC`: Estado de carga de la batería (%)
+- `Escuela`, `Bombeo`, `Alumbrado`: Estado de cada servicio
+
+## ✅ Estado
+✅ Sin errores — advertencia de código inalcanzable resuelta
